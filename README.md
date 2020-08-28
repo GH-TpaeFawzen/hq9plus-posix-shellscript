@@ -36,4 +36,4 @@ This interpreter translates your code into hexadecimal once and read byte-by-byt
 If your program is written in non-ASCII-compatible encoding, your HQ9+ program may not work properly.
 
 # License
-See 'LICENSE'.
+Distributed under CC0. See 'LICENSE' for more details.
