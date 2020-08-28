@@ -1,0 +1,62 @@
+#!/bin/sh
+set -eu
+umask 0022
+export LC_ALL=C
+export PATH="$(command -p getconf PATH 2>/dev/null)${PATH+:}${PATH-}"
+case $PATH in :*) PATH=${PATH#?};; esac
+export UNIX_STD=2003
+
+usage(){
+	cat<<-USAGE 1>&2
+	usage: ${0##*/} FILE
+	USAGE
+	exit 1
+}
+case $# in 0)usage;; esac
+
+CODE_="$(cat "$@"; printf '_')"
+sedlyLF_="$(printf '\\\012_')"
+
+printf '%s' "${CODE_%_}" |
+
+# to hexadecimal
+od -A n -t x1 |
+	tr -Cd '0123456789abcdef\n' |
+	sed 's/../&'"${sedlyLF_%_}"'/g' |
+	grep '.' |
+
+# actual interpreter here
+awk -v CODE="${CODE_%_}" '
+function hello(){print"Hello, world!";}
+function quine(){
+	printf CODE;
+}
+function ninetyNineBottles(){
+	for(i=99;i>=0;i--){
+		if(!i){
+			before="no more bottles";
+			after="99 bottles";
+			action="Go to the store and buy some more";
+		}else{
+			before=i " bottle" ((i==1)?"":"s");
+			after=((i==1)?"no more":(i-1))\
+			      " bottle" ((i==2)?"":"s");
+			action="Take one down and pass it around";
+		}
+		Before=(before~/n/)?"No more bottles":before;
+		print Before " of beer on the wall, "\
+		      before " of beer.";
+		print action ", " after " of beer on the wall.";
+		if(i)printf"\n";	
+	}
+}
+function increment(){
+	daCOUNT++;
+}
+/^48$/{hello();}
+/^51$/{quine();}
+/^39$/{ninetyNineBottles();}
+/^2B$/{increment();}'
+
+# finally
+exit 0
