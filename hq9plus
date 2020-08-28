@@ -28,7 +28,6 @@ text2hex(){
 HEXCODE="$(cat "$@" | text2hex)" 
 
 # actual interpreter here
-# XXX: may not work on non-GNU awk because CODE_ can be binary.
 OUTPUT="$(
 	printf "%s\n" "$HEXCODE" |
 	awk \
