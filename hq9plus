@@ -14,51 +14,88 @@ usage(){
 }
 case $# in 0) usage;; esac
 
-CODE_="$(cat "$@"; printf '_')"
-sedlyLF_="$(printf '\\\012_')"
-
-printf '%s' "${CODE_%_}" |
-
-# to hexadecimal
-od -A n -t x1 |
-	tr -Cd '0123456789abcdef\n' |
+text2hex(){
+		(
+	sedlyLF_="$(printf '\\\012_')"
+	od -A n -t x1 -v |
+	tr -Cd '0123456789abcdefABCDEF\n' |
 	sed 's/../&'"${sedlyLF_%_}"'/g' |
 	grep '.' |
+	tr ABCDEF abcdef
+		)
+}
+
+HEXCODE="$(cat "$@" | text2hex)" 
 
 # actual interpreter here
-awk -v CODE="${CODE_%_}" '
-function hello(){
-	print"Hello, world!";
-}
-function quine(){
-	printf CODE;
-}
-function ninetyNineBottles(){
-	for(i=99;i>=0;i--){
-		if(!i){
-			before="no more bottles";
-			after="99 bottles";
-			action="Go to the store and buy some more";
-		}else{
-			before=i " bottle" ((i==1)?"":"s");
-			after=((i==1)?"no more":(i-1))\
-			      " bottle" ((i==2)?"":"s");
-			action="Take one down and pass it around";
+# XXX: may not work on non-GNU awk because CODE_ can be binary.
+OUTPUT="$(
+	printf "%s\n" "$HEXCODE" |
+	awk \
+	-v CODE="$HEXCODE" \
+	-v HELLO="$(echo 'Hello, world!' | text2hex)" \
+	-v NNB="$(
+	awk '
+	BEGIN{
+		for(i=99;i>=0;i--){
+			if(!i){
+				before="no more bottles";
+				after="99 bottles";
+				action="Go to the store and buy some more";
+			}else{
+				before=i " bottle" ((i==1)?"":"s");
+				after=((i==1)?"no more":(i-1))\
+				      " bottle" ((i==2)?"":"s");
+				action="Take one down and pass it around";
+			}
+			Before=(before~/n/)?"No more bottles":before;
+			print Before " of beer on the wall, "\
+			      before " of beer.";
+			print action ", " after " of beer on the wall.";
+			if(i)printf"\n";	
 		}
-		Before=(before~/n/)?"No more bottles":before;
-		print Before " of beer on the wall, "\
-		      before " of beer.";
-		print action ", " after " of beer on the wall.";
-		if(i)printf"\n";	
+	}' |
+	text2hex)" \
+	'
+	function hello(){print HELLO;}
+	function quine(){print CODE;}
+	function ninetyNineBottles(){print NNB;}
+	function increment(){daCOUNT++;}
+	/^48$/{hello();}
+	/^51$/{quine();}
+	/^39$/{ninetyNineBottles();}
+	/^2[bB]$/{increment();}'
+)"
+
+# hexadecimal to text
+case "$OUTPUT" in
+	?*)
+	printf '%s\n' "$OUTPUT" |
+	awk '
+	BEGIN{
+		for(i=1;i<256;i++)
+			fmt[sprintf("%02x",i)]=sprintf("\\\\%03o",i);
+		ARGMAX='"$(getconf ARG_MAX)"';
+		maxlen=int(ARGMAX/2)-length("printf ");
+		arglen=0;
+		ORS="";
+		LF=sprintf("\n");
 	}
-}
-function increment(){
-	daCOUNT++;
-}
-/^48$/{hello();}
-/^51$/{quine();}
-/^39$/{ninetyNineBottles();}
-/^2B$/{increment();}'
+	{
+		if(arglen+4>maxlen){ # TBH I have no ideas why +4.
+			print LF;
+			arglen=0;
+		}
+		print fmt[$0];
+		arglen+=5; # because "\\ooo" has five characters.
+	}
+	END{
+		if(NR>0)
+			print LF;
+	}' |
+	xargs -n 1 printf
+	;;
+esac
 
 # finally
 exit 0
