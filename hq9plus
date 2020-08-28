@@ -12,7 +12,7 @@ usage(){
 	USAGE
 	exit 1
 }
-case $# in 0)usage;; esac
+case $# in 0) usage;; esac
 
 CODE_="$(cat "$@"; printf '_')"
 sedlyLF_="$(printf '\\\012_')"
@@ -27,7 +27,9 @@ od -A n -t x1 |
 
 # actual interpreter here
 awk -v CODE="${CODE_%_}" '
-function hello(){print"Hello, world!";}
+function hello(){
+	print"Hello, world!";
+}
 function quine(){
 	printf CODE;
 }
