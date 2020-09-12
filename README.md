@@ -32,8 +32,9 @@ the arguments to the POSIX utility `cat`.
 This interpreter is case-sensitive. `H`, `Q`, `9`, and `+` are valid command characters.
 Your program may contain other characters but they are ignored.
 
-This interpreter translates your code into hexadecimal once and read byte-by-byte.
-If your program is written in non-ASCII-compatible encoding, your HQ9+ program may not work properly.
+This interpreter translates your code into hexadecimal once and read byte-by-byte,
+so `Q`, quine command, works for source written in any binary.
+This interpreter expects your HQ9+ program to be written in ASCII-compatible encoding.
 
 # License
 Distributed under CC0-1.0. See 'LICENSE' for more details.
